@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Services from './pages/Services';
 import CreateService from './pages/CreateService';
 import BookService from './pages/BookService';
+import ProviderProfile from './pages/ProviderProfile';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="profile/:id" element={<ProviderProfile />} />
           </Route>
         </Routes>
       </Router>

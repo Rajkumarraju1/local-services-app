@@ -3,14 +3,17 @@ import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
+
+
+console.log('Firebase initializing...');
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  apiKey: "AIzaSyCrAzLdxHnc004x2WayZl5JJxa_Bn6iPTk",
+  authDomain: "local-services-app-fd246.firebaseapp.com",
+  projectId: "local-services-app-fd246",
+  storageBucket: "local-services-app-fd246.firebasestorage.app",
+  messagingSenderId: "777053509850",
+  appId: "1:777053509850:web:9b98bb09b1618ed326ade3",
+  measurementId: "G-26RMS6K9MV"
 };
 
 const app = initializeApp(firebaseConfig);

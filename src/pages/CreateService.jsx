@@ -102,7 +102,7 @@ export default function CreateService() {
                     ></textarea>
                 </div>
 
-                <button disabled={loading} className="btn btn-primary w-full py-3 text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all">
+                <button type="submit" disabled={loading} className="btn btn-primary w-full py-3 text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all">
                     {loading ? 'Publishing...' : 'Publish Service 🚀'}
                 </button>
             </form>

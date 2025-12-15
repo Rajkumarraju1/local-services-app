@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getServiceById, addBooking } from '../services/dataService';
+import { getServiceById, addBooking, getReviews } from '../services/dataService';
 import { useAuth } from '../lib/AuthContext';
 
 export default function BookService() {
@@ -8,24 +8,33 @@ export default function BookService() {
     const { currentUser } = useAuth();
     const navigate = useNavigate();
     const [service, setService] = useState(null);
+    const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const [date, setDate] = useState('');
     const [notes, setNotes] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
+    console.log('Rendering BookService', { id, loading, service, reviews });
+
     useEffect(() => {
-        async function fetchService() {
+        async function fetchServiceAndReviews() {
             try {
-                const data = await getServiceById(id);
-                setService(data);
+                console.log('Fetching service/reviews for', id);
+                const [serviceData, reviewsData] = await Promise.all([
+                    getServiceById(id),
+                    getReviews(id)
+                ]);
+                console.log('Fetched data:', { serviceData, reviewsData });
+                setService(serviceData);
+                setReviews(reviewsData);
             } catch (error) {
-                console.error(error);
+                console.error('Error fetching data:', error);
             } finally {
                 setLoading(false);
             }
         }
-        fetchService();
+        fetchServiceAndReviews();
     }, [id]);
 
     const handleBook = async (e) => {
@@ -61,17 +70,30 @@ export default function BookService() {
     if (!service) return <div>Service not found</div>;
 
     return (
-        <div className="max-w-2xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6">Book Service</h1>
-            <div className="card mb-6">
-                <h2 className="text-xl font-semibold">{service.title}</h2>
-                <p className="text-gray-500">{service.category}</p>
-                <div className="text-2xl font-bold text-primary mb-6">
-                    ₹{service.price} <span className="text-sm font-normal text-muted">/ job</span>
+        <div className="max-w-2xl mx-auto space-y-8 animate-fade-in">
+            <div className="card bg-white shadow-lg border-t-4 border-primary">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <h2 className="text-2xl font-bold text-secondary mb-1">{service.title}</h2>
+                        <div className="flex items-center gap-2 text-sm text-muted mb-4 uppercase tracking-wide font-semibold">
+                            <span>{service.category}</span>
+                            {service.averageRating > 0 && (
+                                <span className="text-amber-500 flex items-center gap-1">
+                                    • ★ {service.averageRating} ({service.reviewCount} reviews)
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-3xl font-extrabold text-primary">₹{service.price}</div>
+                        <div className="text-xs text-muted">starting price</div>
+                    </div>
                 </div>
+                <p className="text-slate-600 leading-relaxed border-t border-slate-100 pt-4 mt-2">{service.description || "No description provided."}</p>
             </div>
 
-            <form onSubmit={handleBook} className="space-y-6 card">
+            <form onSubmit={handleBook} className="card glass space-y-6">
+                <h3 className="text-lg font-semibold border-b border-slate-100 pb-2">📅 Schedule Appointment</h3>
                 <div>
                     <label className="block text-sm font-medium mb-1">Preferred Date & Time</label>
                     <input
@@ -92,12 +114,40 @@ export default function BookService() {
                     ></textarea>
                 </div>
                 <button
+                    type="submit"
                     disabled={submitting}
-                    className="btn btn-primary w-full"
+                    className="btn btn-primary w-full py-3 text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all"
                 >
                     {submitting ? 'Processing...' : 'Confirm Booking'}
                 </button>
             </form>
+
+            {/* Reviews Section */}
+            <div>
+                <h3 className="text-xl font-bold mb-4">Client Reviews ({(reviews || []).length})</h3>
+                {(!reviews || reviews.length === 0) ? (
+                    <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-muted">
+                        No reviews yet. Be the first to book and rate!
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {(reviews || []).map(review => (
+                            <div key={review.id} className="card bg-white p-5 shadow-sm border border-slate-100">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="font-semibold text-secondary">{review.userName || 'Anonymous'}</div>
+                                    <div className="text-amber-500 text-sm font-bold">
+                                        {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                                    </div>
+                                </div>
+                                <p className="text-slate-600 text-sm">{review.comment}</p>
+                                <div className="text-xs text-muted mt-3">
+                                    {new Date(review.createdAt).toLocaleDateString()}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
