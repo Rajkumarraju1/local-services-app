@@ -1,18 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
-import { getBookings, updateBookingStatus, addReview, getUserProfile, updateUserProfile } from '../services/dataService';
+import { getBookings, updateBookingStatus, addReview, getUserProfile, updateUserProfile, getServicesByProvider, promoteService } from '../services/dataService';
 import { Link } from 'react-router-dom';
+import ChatModal from '../components/ChatModal';
 
 export default function Dashboard() {
     const { currentUser, userRole } = useAuth();
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [chatBooking, setChatBooking] = useState(null);
 
     useEffect(() => {
         async function fetchBookings() {
             if (currentUser) {
                 const data = await getBookings(currentUser.uid, userRole);
                 setBookings(data);
+
+                if (userRole === 'provider') {
+                    getServicesByProvider(currentUser.uid).then(srvs => setProviderServices(srvs));
+                }
+
                 setLoading(false);
             }
         }
@@ -55,6 +62,35 @@ export default function Dashboard() {
             });
         }
     }, [currentUser, userRole]);
+
+    const [providerServices, setProviderServices] = useState([]);
+    const [boostModalOpen, setBoostModalOpen] = useState(false);
+    const [serviceToBoost, setServiceToBoost] = useState(null);
+
+    const handleBoostClick = (service) => {
+        setServiceToBoost(service);
+        setBoostModalOpen(true);
+    };
+
+    const handleConfirmBoost = async () => {
+        if (!serviceToBoost) return;
+        try {
+            // Simulate Payment Processing
+            await new Promise(r => setTimeout(r, 1500));
+
+            await promoteService(serviceToBoost.id);
+            alert(`Payment Successful! "${serviceToBoost.title}" is now FEATURED ⚡`);
+            setBoostModalOpen(false);
+
+            // Update local state
+            setProviderServices(providerServices.map(s =>
+                s.id === serviceToBoost.id ? { ...s, isPromoted: true } : s
+            ));
+        } catch (error) {
+            console.error(error);
+            alert('Payment failed');
+        }
+    };
 
     const handleProfileUpdate = async (e) => {
         e.preventDefault();
@@ -129,6 +165,14 @@ export default function Dashboard() {
                 </div>
             )}
 
+            {chatBooking && (
+                <ChatModal
+                    booking={chatBooking}
+                    currentUser={currentUser}
+                    onClose={() => setChatBooking(null)}
+                />
+            )}
+
             <div className="flex-between">
                 <div>
                     <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">Dashboard</h1>
@@ -145,6 +189,162 @@ export default function Dashboard() {
                     </div>
                 )}
             </div>
+
+            {/* Provider Boost Section */}
+            {userRole === 'provider' && (
+                <div className="card bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 p-6">
+                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-indigo-900">
+                        <span>🚀</span> Promote Your Services
+                    </h2>
+                    {providerServices.length === 0 ? (
+                        <p className="text-muted text-sm">Create a service first to promote it.</p>
+                    ) : (
+                        <div className="grid gap-4 md:grid-cols-2">
+                            {providerServices.map(service => (
+                                <div key={service.id} className="bg-white p-4 rounded-xl border border-indigo-50 shadow-sm flex justify-between items-center">
+                                    <div>
+                                        <div className="font-bold text-slate-700">{service.title}</div>
+                                        {service.isPromoted ? (
+                                            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-bold flex items-center gap-1 w-fit mt-1">
+                                                ⚡ FEATURED
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs text-muted">Standard Listing</span>
+                                        )}
+                                    </div>
+                                    {!service.isPromoted && (
+                                        <button
+                                            onClick={() => handleBoostClick(service)}
+                                            className="btn btn-sm bg-gradient-to-r from-amber-400 to-orange-500 text-white border-none shadow-md hover:shadow-lg hover:scale-105 transition-all"
+                                        >
+                                            ⚡ Boost
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Boost Modal */}
+            {boostModalOpen && serviceToBoost && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-scale-in text-center">
+                        <div className="w-16 h-16 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                            ⚡
+                        </div>
+                        <h3 className="text-xl font-bold mb-2">Boost "{serviceToBoost.title}"</h3>
+                        <p className="text-muted mb-6">
+                            Get 3x more views by pinning your service to the top of search results.
+                        </p>
+
+                        <div className="bg-slate-50 p-4 rounded-xl mb-6 border border-slate-100">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm text-slate-600">Duration</span>
+                                <span className="font-semibold">7 Days</span>
+                            </div>
+                            <div className="flex justify-between items-center border-t border-slate-200 pt-2">
+                                <span className="text-sm text-slate-600">Total</span>
+                                <span className="text-xl font-bold text-primary">₹99.00</span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <button
+                                onClick={handleConfirmBoost}
+                                className="btn btn-primary w-full py-3 text-lg shadow-lg hover:shadow-amber-500/20"
+                            >
+                                Pay ₹99 & Boost
+                            </button>
+                            <button
+                                onClick={() => setBoostModalOpen(false)}
+                                className="btn btn-ghost w-full"
+                            >
+                                No thanks
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Provider Boost Section */}
+            {userRole === 'provider' && (
+                <div className="card bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 p-6">
+                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-indigo-900">
+                        <span>🚀</span> Promote Your Services
+                    </h2>
+                    {providerServices.length === 0 ? (
+                        <p className="text-muted text-sm">Create a service first to promote it.</p>
+                    ) : (
+                        <div className="grid gap-4 md:grid-cols-2">
+                            {providerServices.map(service => (
+                                <div key={service.id} className="bg-white p-4 rounded-xl border border-indigo-50 shadow-sm flex justify-between items-center">
+                                    <div>
+                                        <div className="font-bold text-slate-700">{service.title}</div>
+                                        {service.isPromoted ? (
+                                            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-bold flex items-center gap-1 w-fit mt-1">
+                                                ⚡ FEATURED
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs text-muted">Standard Listing</span>
+                                        )}
+                                    </div>
+                                    {!service.isPromoted && (
+                                        <button
+                                            onClick={() => handleBoostClick(service)}
+                                            className="btn btn-sm bg-gradient-to-r from-amber-400 to-orange-500 text-white border-none shadow-md hover:shadow-lg hover:scale-105 transition-all"
+                                        >
+                                            ⚡ Boost
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Boost Modal */}
+            {boostModalOpen && serviceToBoost && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-scale-in text-center">
+                        <div className="w-16 h-16 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                            ⚡
+                        </div>
+                        <h3 className="text-xl font-bold mb-2">Boost "{serviceToBoost.title}"</h3>
+                        <p className="text-muted mb-6">
+                            Get 3x more views by pinning your service to the top of search results.
+                        </p>
+
+                        <div className="bg-slate-50 p-4 rounded-xl mb-6 border border-slate-100">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm text-slate-600">Duration</span>
+                                <span className="font-semibold">7 Days</span>
+                            </div>
+                            <div className="flex justify-between items-center border-t border-slate-200 pt-2">
+                                <span className="text-sm text-slate-600">Total</span>
+                                <span className="text-xl font-bold text-primary">₹99.00</span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <button
+                                onClick={handleConfirmBoost}
+                                className="btn btn-primary w-full py-3 text-lg shadow-lg hover:shadow-amber-500/20"
+                            >
+                                Pay ₹99 & Boost
+                            </button>
+                            <button
+                                onClick={() => setBoostModalOpen(false)}
+                                className="btn btn-ghost w-full"
+                            >
+                                No thanks
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Provider Profile Section */}
             {userRole === 'provider' && (
@@ -249,44 +449,58 @@ export default function Dashboard() {
                                             <td className="px-4 py-4 font-medium text-secondary">₹{b.price}</td>
                                             <td className="px-4 py-4 text-sm text-muted max-w-xs truncate hidden md:table-cell">{b.notes}</td>
                                             <td className="px-4 py-4">
-                                                {userRole === 'provider' && (
-                                                    <>
-                                                        {b.status === 'pending' && (
-                                                            <div className="flex gap-2">
+                                                <div className="flex flex-wrap gap-2">
+                                                    {['pending', 'confirmed'].includes(b.status) && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setChatBooking(b);
+                                                            }}
+                                                            className="btn btn-sm btn-ghost border border-slate-200 text-slate-600 hover:text-primary hover:border-primary"
+                                                            title="Chat"
+                                                        >
+                                                            💬
+                                                        </button>
+                                                    )}
+
+                                                    {userRole === 'provider' && (
+                                                        <>
+                                                            {b.status === 'pending' && (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => handleStatusUpdate(b.id, 'confirmed')}
+                                                                        className="btn btn-primary text-xs px-3 py-1 bg-emerald-600 hover:bg-emerald-700 border-none"
+                                                                        title="Accept"
+                                                                    >
+                                                                        Pass
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleStatusUpdate(b.id, 'cancelled')}
+                                                                        className="btn btn-outline text-xs px-3 py-1 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                                                                        title="Reject"
+                                                                    >
+                                                                        Reject
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                            {b.status === 'confirmed' && (
                                                                 <button
-                                                                    onClick={() => handleStatusUpdate(b.id, 'confirmed')}
-                                                                    className="btn btn-primary text-xs px-3 py-1 bg-emerald-600 hover:bg-emerald-700 border-none"
-                                                                    title="Accept"
+                                                                    onClick={() => handleStatusUpdate(b.id, 'completed')}
+                                                                    className="btn btn-outline text-xs px-3 py-1 border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300"
                                                                 >
-                                                                    Pass
+                                                                    Mark Complete
                                                                 </button>
-                                                                <button
-                                                                    onClick={() => handleStatusUpdate(b.id, 'cancelled')}
-                                                                    className="btn btn-outline text-xs px-3 py-1 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
-                                                                    title="Reject"
-                                                                >
-                                                                    Reject
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                        {b.status === 'confirmed' && (
-                                                            <button
-                                                                onClick={() => handleStatusUpdate(b.id, 'completed')}
-                                                                className="btn btn-outline text-xs px-3 py-1 border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300"
-                                                            >
-                                                                Mark Complete
-                                                            </button>
-                                                        )}
-                                                    </>
-                                                )}
-                                                {userRole !== 'provider' && b.status === 'completed' && (
-                                                    <button
-                                                        onClick={() => openReviewModal(b)}
-                                                        className="btn btn-sm btn-primary text-xs"
-                                                    >
-                                                        ★ Rate
-                                                    </button>
-                                                )}
+                                                            )}
+                                                        </>
+                                                    )}
+                                                    {userRole !== 'provider' && b.status === 'completed' && (
+                                                        <button
+                                                            onClick={() => openReviewModal(b)}
+                                                            className="btn btn-sm btn-primary text-xs"
+                                                        >
+                                                            ★ Rate
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

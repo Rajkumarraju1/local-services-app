@@ -3,7 +3,12 @@ import { Link } from 'react-router-dom';
 
 export default function ServiceCard({ service, onBook }) {
     return (
-        <div className="card glass hover:shadow-xl transition-all duration-300 flex flex-col h-full group">
+        <div className={`card glass hover:shadow-xl transition-all duration-300 flex flex-col h-full group ${service.isPromoted ? 'border-2 border-amber-300 shadow-md transform scale-[1.02]' : ''}`}>
+            {service.isPromoted && (
+                <div className="absolute top-0 right-0 bg-amber-400 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg shadow-sm z-10 flex items-center gap-1">
+                    ⚡ FEATURED
+                </div>
+            )}
             <div className="mb-4 flex justify-between items-start">
                 <span className="bg-primary-light text-primary text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wide flex items-center gap-1">
                     {service.category}

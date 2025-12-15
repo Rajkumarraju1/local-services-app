@@ -11,6 +11,7 @@ export default function Services() {
     // We'll trust the URL as the source of truth for initial load
     const [category, setCategory] = useState(initialCategory);
     const [locationSearch, setLocationSearch] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
 
     const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -36,14 +37,18 @@ export default function Services() {
         setSearchParams(searchParams);
     };
 
+    // Debounce search
     useEffect(() => {
-        loadServices();
-    }, [category]);
+        const timer = setTimeout(() => {
+            loadServices();
+        }, 300); // 300ms debounce
+        return () => clearTimeout(timer);
+    }, [category, searchTerm]);
 
     async function loadServices() {
         setLoading(true);
         try {
-            const data = await getServices(category);
+            const data = await getServices(category, searchTerm);
             setServices(data);
         } catch (err) {
             console.error(err);
@@ -65,30 +70,45 @@ export default function Services() {
                     <p className="text-base md:text-lg text-muted">Connect with trusted professionals in your neighborhood.</p>
                 </div>
 
-                <div className="flex items-center gap-2 w-full md:w-auto bg-white p-1.5 rounded-full shadow-lg border border-slate-200">
-                    <div className="pl-4 text-slate-400">📍</div>
-                    <input
-                        type="text"
-                        placeholder="Filter by city..."
-                        className="outline-none text-sm bg-transparent w-full md:w-40 py-2"
-                        value={locationSearch}
-                        onChange={(e) => setLocationSearch(e.target.value)}
-                    />
-                    <div className="h-6 w-px bg-slate-200"></div>
-                    <select
-                        className="flex-1 md:flex-none bg-transparent border-none text-sm font-medium focus:ring-0 cursor-pointer px-3 py-2 outline-none w-full md:w-auto"
-                        value={category}
-                        onChange={handleCategoryChange}
-                    >
-                        <option value="All">All Categories</option>
-                        {['Electrician', 'Plumber', 'Cleaning', 'Tutor', 'Painter', 'Mechanic'].map(c => (
-                            <option key={c} value={c}>{c}</option>
-                        ))}
-                    </select>
-                    <div className="h-6 w-px bg-slate-200 hidden md:block"></div>
-                    <Link to="/create-service" className="btn btn-primary btn-sm rounded-full text-xs px-4 py-2 whitespace-nowrap">
-                        + Post
-                    </Link>
+                <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                    {/* Location Filter */}
+                    <div className="flex items-center gap-2 w-full md:w-auto bg-white p-1.5 rounded-full shadow-lg border border-slate-200">
+                        <div className="pl-4 text-slate-400">📍</div>
+                        <input
+                            type="text"
+                            placeholder="Filter by city..."
+                            className="outline-none text-sm bg-transparent w-full md:w-32 py-2"
+                            value={locationSearch}
+                            onChange={(e) => setLocationSearch(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Main Toolbar */}
+                    <div className="flex items-center gap-2 w-full md:w-auto bg-white p-1.5 rounded-full shadow-lg border border-slate-200">
+                        <div className="pl-4 text-slate-400">🔍</div>
+                        <input
+                            type="text"
+                            placeholder="Search keywords..."
+                            className="outline-none text-sm bg-transparent w-full md:w-48 py-2"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <div className="h-6 w-px bg-slate-200"></div>
+                        <select
+                            className="flex-1 md:flex-none bg-transparent border-none text-sm font-medium focus:ring-0 cursor-pointer px-3 py-2 outline-none w-full md:w-auto"
+                            value={category}
+                            onChange={handleCategoryChange}
+                        >
+                            <option value="All">All Categories</option>
+                            {['Electrician', 'Plumber', 'Cleaning', 'Tutor', 'Painter', 'Mechanic'].map(c => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                        <div className="h-6 w-px bg-slate-200 hidden md:block"></div>
+                        <Link to="/create-service" className="btn btn-primary btn-sm rounded-full text-xs px-4 py-2 whitespace-nowrap">
+                            + Post
+                        </Link>
+                    </div>
                 </div>
             </div>
 
@@ -102,9 +122,7 @@ export default function Services() {
                     <div className="text-4xl mb-4">🔍</div>
                     <h3 className="text-xl font-semibold text-secondary mb-2">No services found</h3>
                     <p className="text-muted mb-6">
-                        {locationSearch
-                            ? `No ${category === 'All' ? '' : category} services found in "${locationSearch}".`
-                            : `We couldn't find any ${category} services at the moment.`}
+                        We couldn't find any matches. Try adjusting your search or filters.
                     </p>
                     <Link to="/create-service" className="btn btn-outline">
                         Be the first to list a service!

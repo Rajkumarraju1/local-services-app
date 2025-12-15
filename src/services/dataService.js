@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export async function addService(serviceData) {
@@ -14,14 +14,38 @@ export async function addService(serviceData) {
     }
 }
 
-export async function getServices(category = null) {
+export async function getServices(category = null, searchTerm = '') {
     try {
         let q = collection(db, 'services');
+
+        // Note: Firestore requires an index for compound queries. 
+        // For simple client-side sorting (small dataset), we can sort in JS if index errors occur.
+        // Let's try client-side sort for robustness in this demo without needing console setup.
         if (category && category !== 'All') {
             q = query(q, where('category', '==', category));
         }
+
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        let services = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Search Filter (Client-side)
+        if (searchTerm) {
+            const lowerTerm = searchTerm.toLowerCase();
+            services = services.filter(service =>
+                (service.title && service.title.toLowerCase().includes(lowerTerm)) ||
+                (service.description && service.description.toLowerCase().includes(lowerTerm))
+            );
+        }
+
+        // Client-side sort: Promoted first, then Date
+        services.sort((a, b) => {
+            if (a.isPromoted === b.isPromoted) {
+                return new Date(b.createdAt) - new Date(a.createdAt); // Newest first
+            }
+            return (b.isPromoted ? 1 : 0) - (a.isPromoted ? 1 : 0); // Promoted first
+        });
+
+        return services;
     } catch (error) {
         console.error("Error getting services: ", error);
         throw error;
@@ -156,4 +180,48 @@ export async function getServicesByProvider(providerId) {
         console.error("Error getting provider services:", error);
         return [];
     }
+}
+
+export async function promoteService(serviceId) {
+    try {
+        const docRef = doc(db, 'services', serviceId);
+        await updateDoc(docRef, {
+            isPromoted: true,
+            promotedAt: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error("Error promoting service:", error);
+        throw error;
+    }
+}
+
+export async function sendMessage(messageData) {
+    console.log("dataService: sending message...", messageData);
+    try {
+        await addDoc(collection(db, 'messages'), {
+            ...messageData,
+            createdAt: new Date().toISOString()
+        });
+        console.log("dataService: message sent successfully");
+    } catch (error) {
+        console.error("Error sending message:", error);
+        throw error;
+    }
+}
+
+export function subscribeToMessages(bookingId, callback) {
+    console.log("dataService: subscribing to messages for booking", bookingId);
+    // Remove orderBy to avoid creating a composite index for this demo
+    const q = query(
+        collection(db, 'messages'),
+        where('bookingId', '==', bookingId)
+    );
+
+    return onSnapshot(q, (snapshot) => {
+        console.log(`dataService: snapshot received with ${snapshot.docs.length} docs`);
+        const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Client-side sort
+        messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        callback(messages);
+    });
 }
