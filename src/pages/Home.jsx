@@ -22,9 +22,10 @@ export default function Home() {
 
             <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {['Electrician', 'Plumber', 'Cleaning', 'Tutor', 'Painter', 'Mechanic'].map((service, index) => (
-                    <div
+                    <Link
                         key={service}
-                        className="card hover:border-primary cursor-pointer transition-colors group"
+                        to={`/services?category=${service}`}
+                        className="card hover:border-primary cursor-pointer transition-colors group block h-full text-left"
                         style={{ animationDelay: `${index * 100}ms` }}
                     >
                         <div className="w-12 h-12 bg-primary-light rounded-full flex-center mb-4 text-2xl">
@@ -32,7 +33,7 @@ export default function Home() {
                         </div>
                         <h3 className="font-semibold text-lg group-hover:text-primary mb-2">{service}</h3>
                         <p className="text-sm text-muted">Book expert {service.toLowerCase()}s near you with guaranteed satisfaction.</p>
-                    </div>
+                    </Link>
                 ))}
             </section>
         </div>
