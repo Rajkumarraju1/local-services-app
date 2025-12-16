@@ -1,6 +1,20 @@
-import { Link } from 'react-router-dom';
+import catElectrician from '../assets/cat_electrician.png';
+import catPlumber from '../assets/cat_plumber.png';
+import catCleaning from '../assets/cat_cleaning.png';
+import catTutor from '../assets/cat_tutor.png';
+import catPainter from '../assets/cat_painter.png';
+import catMechanic from '../assets/cat_mechanic.png';
 
 export default function Home() {
+    const categories = [
+        { name: 'Electrician', img: catElectrician },
+        { name: 'Plumber', img: catPlumber },
+        { name: 'Cleaning', img: catCleaning },
+        { name: 'Tutor', img: catTutor },
+        { name: 'Painter', img: catPainter },
+        { name: 'Mechanic', img: catMechanic },
+    ];
+
     return (
         <div className="space-y-12">
             <section className="hero">
@@ -20,19 +34,27 @@ export default function Home() {
                 </div>
             </section>
 
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {['Electrician', 'Plumber', 'Cleaning', 'Tutor', 'Painter', 'Mechanic'].map((service, index) => (
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {categories.map((cat, index) => (
                     <Link
-                        key={service}
-                        to={`/services?category=${service}`}
-                        className="card hover:border-primary cursor-pointer transition-colors group block h-full text-left"
+                        key={cat.name}
+                        to={`/services?category=${cat.name}`}
+                        className="card hover:border-primary cursor-pointer transition-colors group block h-full text-left overflow-hidden relative"
                         style={{ animationDelay: `${index * 100}ms` }}
                     >
-                        <div className="w-12 h-12 bg-primary-light rounded-full flex-center mb-4 text-2xl">
-                            {['⚡', '🔧', '🧹', '📚', '🎨', '🚗'][index]}
+                        <div className="flex items-center gap-4 p-4">
+                            <div className="w-20 h-20 shrink-0">
+                                <img
+                                    src={cat.img}
+                                    alt={cat.name}
+                                    className="w-full h-full object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300"
+                                />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-xl group-hover:text-primary mb-1">{cat.name}</h3>
+                                <p className="text-sm text-muted">Expert {cat.name.toLowerCase()}s near you.</p>
+                            </div>
                         </div>
-                        <h3 className="font-semibold text-lg group-hover:text-primary mb-2">{service}</h3>
-                        <p className="text-sm text-muted">Book expert {service.toLowerCase()}s near you with guaranteed satisfaction.</p>
                     </Link>
                 ))}
             </section>

@@ -3,6 +3,8 @@ import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import { logoutUser } from '../services/authService';
 
+import logo from '../assets/logo.png';
+
 export default function Layout() {
     const { currentUser } = useAuth();
     const navigate = useNavigate();
@@ -24,8 +26,14 @@ export default function Layout() {
         <div className="min-h-screen flex flex-col bg-dots">
             <header className="glass sticky top-0 z-50">
                 <div className="container h-[var(--nav-height)] flex items-center justify-between">
-                    <Link to="/" className="text-xl font-bold text-primary flex-center gap-2" onClick={closeMenu}>
-                        <span className="text-2xl">✨</span> LocalServe
+                    <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity" onClick={closeMenu}>
+                        <img
+                            src={logo}
+                            alt="LocalServe"
+                            className="w-10 h-10 object-contain"
+                            style={{ width: '40px', height: '40px' }}
+                        />
+                        <span className="text-xl md:text-2xl font-bold text-primary tracking-tight">LocalServe</span>
                     </Link>
 
                     {/* Mobile Menu Button */}
