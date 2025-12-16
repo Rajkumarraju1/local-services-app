@@ -281,6 +281,15 @@ a {
   width: 100%;
 }
 
+.max-w-lg {
+  max-width: 32rem;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* Animations */
 @keyframes fadeIn {
   from {
@@ -540,6 +549,22 @@ tr.hover\:bg-slate-50\/50:hover {
 
   .md\:w-auto {
     width: auto;
+  }
+
+  .md\:w-1\/2 {
+    width: 50%;
+  }
+
+  .md\:text-left {
+    text-align: left;
+  }
+
+  .md\:items-center {
+    align-items: center;
+  }
+
+  .md\:justify-between {
+    justify-content: space-between;
   }
 }
 

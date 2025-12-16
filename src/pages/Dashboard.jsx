@@ -72,23 +72,67 @@ export default function Dashboard() {
         setBoostModalOpen(true);
     };
 
+    // Load Razorpay SDK Helper
+    const loadRazorpay = () => {
+        return new Promise((resolve) => {
+            if (window.Razorpay) {
+                resolve(true);
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+        });
+    };
+
     const handleConfirmBoost = async () => {
         if (!serviceToBoost) return;
         try {
-            // Simulate Payment Processing
-            await new Promise(r => setTimeout(r, 1500));
+            const isLoaded = await loadRazorpay();
+            if (!isLoaded) {
+                alert('Razorpay SDK failed to load.');
+                return;
+            }
 
-            await promoteService(serviceToBoost.id);
-            alert(`Payment Successful! "${serviceToBoost.title}" is now FEATURED ⚡`);
-            setBoostModalOpen(false);
+            const options = {
+                key: "rzp_test_RQzTCSQezDt3qq",
+                amount: 9900, // ₹99.00
+                currency: "INR",
+                name: "Local Services App",
+                description: `Boost: ${serviceToBoost.title}`,
+                image: "https://via.placeholder.com/150",
+                handler: async function (response) {
+                    try {
+                        await promoteService(serviceToBoost.id);
+                        alert(`Payment Successful! Payment ID: ${response.razorpay_payment_id}. "${serviceToBoost.title}" is now FEATURED ⚡`);
+                        setBoostModalOpen(false);
 
-            // Update local state
-            setProviderServices(providerServices.map(s =>
-                s.id === serviceToBoost.id ? { ...s, isPromoted: true } : s
-            ));
+                        // Update local state
+                        setProviderServices(providerServices.map(s =>
+                            s.id === serviceToBoost.id ? { ...s, isPromoted: true } : s
+                        ));
+                    } catch (error) {
+                        console.error(error);
+                        alert('Payment successful but failed to update service.');
+                    }
+                },
+                prefill: {
+                    name: currentUser.displayName || currentUser.email.split('@')[0],
+                    email: currentUser.email
+                },
+                theme: {
+                    color: "#f59e0b" // Amber for boost
+                }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.open();
+
         } catch (error) {
             console.error(error);
-            alert('Payment failed');
+            alert('Payment initiation failed');
         }
     };
 
