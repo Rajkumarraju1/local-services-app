@@ -37,17 +37,6 @@ export default function BookService() {
         fetchServiceAndReviews();
     }, [id]);
 
-    // Load Razorpay SDK Helper
-    const loadRazorpay = () => {
-        return new Promise((resolve) => {
-            const script = document.createElement('script');
-            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-            script.onload = () => resolve(true);
-            script.onerror = () => resolve(false);
-            document.body.appendChild(script);
-        });
-    };
-
     const handleBook = async (e) => {
         e.preventDefault();
         if (!currentUser) {
@@ -64,70 +53,23 @@ export default function BookService() {
         setSubmitting(true);
 
         try {
-            // Load Razorpay SDK
-            const isLoaded = await loadRazorpay();
-            if (!isLoaded) {
-                alert('Razorpay SDK failed to load. Are you online?');
-                setSubmitting(false);
-                return;
-            }
-
-            // Razorpay Options
-            const options = {
-                key: "rzp_test_RQzTCSQezDt3qq", // User provided Test Key
-                amount: service.price * 100, // Amount in paise
-                currency: "INR",
-                name: "Local Services App",
-                description: `Booking for ${service.title}`,
-                image: "https://via.placeholder.com/150", // Optional: Add app logo here
-                handler: async function (response) {
-                    // Payment Success Handler
-                    try {
-                        await addBooking({
-                            serviceId: id,
-                            serviceTitle: service.title,
-                            providerId: service.providerId,
-                            customerId: currentUser.uid,
-                            customerEmail: currentUser.email,
-                            price: service.price,
-                            date,
-                            notes,
-                            paymentStatus: 'paid',
-                            paymentId: response.razorpay_payment_id,
-                            paidAt: new Date().toISOString()
-                        });
-                        alert(`Payment Successful! Payment ID: ${response.razorpay_payment_id}`);
-                        navigate('/dashboard');
-                    } catch (error) {
-                        console.error(error);
-                        alert("Payment successful but failed to save booking. Please contact support.");
-                    }
-                },
-                prefill: {
-                    name: currentUser.displayName || currentUser.email.split('@')[0],
-                    email: currentUser.email,
-                    contact: "" // Can add customer phone if available
-                },
-                theme: {
-                    color: "#4f46e5"
-                },
-                modal: {
-                    ondismiss: function () {
-                        setSubmitting(false);
-                    }
-                }
-            };
-
-            const rzp = new window.Razorpay(options);
-            rzp.on('payment.failed', function (response) {
-                alert(`Payment FAILED: ${response.error.description}`);
-                setSubmitting(false);
+            await addBooking({
+                serviceId: id,
+                serviceTitle: service.title,
+                providerId: service.providerId,
+                customerId: currentUser.uid,
+                customerEmail: currentUser.email,
+                price: service.price,
+                date,
+                notes,
+                status: 'pending' // pending provider approval
             });
-            rzp.open();
-
+            alert('Booking confirmed! The provider will contact you shortly.');
+            navigate('/dashboard');
         } catch (error) {
             console.error("Booking Error:", error);
-            alert("An error occurred during booking initialization.");
+            alert("Failed to book service");
+        } finally {
             setSubmitting(false);
         }
     };
@@ -182,9 +124,9 @@ export default function BookService() {
                 <button
                     type="submit"
                     disabled={submitting}
-                    className="btn btn-primary w-full py-3 text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all"
+                    className={`btn btn-primary w-full py-4 text-lg font-bold shadow-lg hover:shadow-primary/30 transition-all ${submitting ? 'opacity-70 cursor-not-allowed' : 'hover:scale-105'}`}
                 >
-                    {submitting ? 'Processing Payment...' : 'Pay & Confirm Booking'}
+                    {submitting ? 'Processing...' : 'Confirm Booking'}
                 </button>
             </form>
 
