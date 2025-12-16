@@ -88,6 +88,18 @@ export async function getBookings(userId, role) {
     }
 }
 
+export function subscribeToBookings(userId, role, callback) {
+    const field = role === 'customer' ? 'customerId' : 'providerId';
+    const q = query(collection(db, 'bookings'), where(field, '==', userId));
+
+    return onSnapshot(q, (snapshot) => {
+        const bookings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Sort by date desc (newest first)
+        bookings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        callback(bookings);
+    });
+}
+
 
 
 export async function updateBookingStatus(bookingId, status) {

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../lib/AuthContext';
-import { getBookings, updateBookingStatus, addReview, getUserProfile, updateUserProfile, getServicesByProvider, promoteService } from '../services/dataService';
+import { subscribeToBookings, updateBookingStatus, addReview, getUserProfile, updateUserProfile, getServicesByProvider, promoteService } from '../services/dataService';
 import { Link } from 'react-router-dom';
 import ChatModal from '../components/ChatModal';
 
@@ -9,21 +9,44 @@ export default function Dashboard() {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [chatBooking, setChatBooking] = useState(null);
+    const [notification, setNotification] = useState(null);
+    const bookingsRef = useRef([]);
+    const isFirstLoad = useRef(true);
 
     useEffect(() => {
-        async function fetchBookings() {
+        let unsubscribe;
+
+        async function initDashboard() {
             if (currentUser) {
-                const data = await getBookings(currentUser.uid, userRole);
-                setBookings(data);
+                // Subscribe to real-time bookings
+                unsubscribe = subscribeToBookings(currentUser.uid, userRole, (newBookings) => {
+                    setBookings(newBookings);
+
+                    // Notification Logic
+                    if (!isFirstLoad.current && newBookings.length > bookingsRef.current.length) {
+                        // Determine if it's a new booking (basic check by length)
+                        // Ideally we check for new IDs, but length increase is sufficient for "New Booking" alert
+                        if (userRole === 'provider') {
+                            setNotification("🔔 New Booking Received!");
+                            setTimeout(() => setNotification(null), 5000); // Hide after 5s
+                        }
+                    }
+
+                    bookingsRef.current = newBookings;
+                    isFirstLoad.current = false;
+                    setLoading(false);
+                });
 
                 if (userRole === 'provider') {
                     getServicesByProvider(currentUser.uid).then(srvs => setProviderServices(srvs));
                 }
-
-                setLoading(false);
             }
         }
-        fetchBookings();
+        initDashboard();
+
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
     }, [currentUser, userRole]);
 
     const handleStatusUpdate = async (bookingId, newStatus) => {
@@ -169,6 +192,24 @@ export default function Dashboard() {
 
     return (
         <div className="space-y-8 animate-fade-in relative">
+            {/* Notification Toast */}
+            {notification && (
+                <div className="fixed top-24 right-4 z-50 animate-bounce-in">
+                    <div className="bg-white border-l-4 border-indigo-500 shadow-xl rounded-lg p-4 flex items-center gap-3 pr-8">
+                        <span className="text-2xl">🔔</span>
+                        <div>
+                            <h4 className="font-bold text-gray-800">New Update</h4>
+                            <p className="text-indigo-600 font-medium">{notification}</p>
+                        </div>
+                        <button
+                            onClick={() => setNotification(null)}
+                            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+                        >
+                            ×
+                        </button>
+                    </div>
+                </div>
+            )}
             {/* Review Modal */}
             {reviewModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
